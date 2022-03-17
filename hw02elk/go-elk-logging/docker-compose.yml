@@ -1,0 +1,61 @@
+version: "3.3"
+services:
+    elasticsearch:
+        build :
+            context: ./elasticsearch/
+        ports: 
+            - "9200:9200"   
+        volumes:
+            - type: bind
+              source: ./elasticsearch/elasticsearch.yml
+              target: /etc/elasticsearch/elasticsearch.yml
+        networks: 
+            - elk
+        environment: 
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+            - discovery.type=single-node
+    logstash:
+        image: docker.elastic.co/logstash/logstash:7.7.0
+        ports: 
+            - "9600:9600"
+            - "5044:5044"
+        volumes:
+            - type: bind
+              source: ./logstash/logstash.conf
+              target: /usr/share/logstash/pipeline/logstash.conf
+        networks: 
+            - elk
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.7.0
+        ports: 
+            - "5601:5601"
+        volumes:
+            - type: bind
+              source: ./kibana/kibana.yml
+              target: /etc/kibana/kibana.yml
+        networks: 
+            - elk
+    filebeat:
+        build :
+            context: ./filebeat/
+        volumes:
+            - type: bind
+              source: ./log/application.log
+              target: /var/log/application.log
+        networks: 
+            - elk
+    golang:
+        build :
+            context: ./golang/
+        ports: 
+            - "8080:8080"
+        volumes:
+            - type: bind
+              source: ./log/application.log
+              target: /go/src/app/application.log
+        networks: 
+            - elk
+    
+networks: 
+    elk:
+        driver: bridge
