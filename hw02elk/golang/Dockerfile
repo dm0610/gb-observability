@@ -2,6 +2,8 @@
 FROM golang
 WORKDIR /go/src/app
 COPY main.go .
+COPY go.mod .
+COPY go.sum .
 RUN go get -d -v ./...
 RUN go install -v ./...
 RUN go build -o main .
