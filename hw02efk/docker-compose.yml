@@ -1,0 +1,59 @@
+version: "3.3"
+services:
+    elasticsearch:
+        build :
+            context: ./elasticsearch/
+        ports: 
+            - "9200:9200"   
+        volumes:
+            - type: bind
+              source: ./elasticsearch/elasticsearch.yml
+              target: /etc/elasticsearch/elasticsearch.yml
+        networks: 
+            - elk
+        environment: 
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+            - discovery.type=single-node
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.7.0
+        ports: 
+            - "5601:5601"
+        volumes:
+            - type: bind
+              source: ./kibana/kibana.yml
+              target: /etc/kibana/kibana.yml
+        networks: 
+            - elk
+    fluentd:
+        build: 
+            context: ./fluentd
+        links:
+            - elasticsearch        
+        volumes:
+          - type: bind
+            source: ./fluentd/conf/fluentd.conf
+            target: /fluentd/etc/fluent.conf
+        ports:
+          - "24224:24224"
+          - "24224:24224/udp"
+        networks:
+            - elk
+
+    golang:
+        logging:
+            driver: "fluentd"    
+            options:
+              fluentd-address: localhost:24224
+              tag: golang.access            
+        links:
+            - fluentd
+        build :
+            context: ./golang/
+        ports: 
+            - "8080:8080"
+        networks: 
+            - elk
+    
+networks: 
+    elk:
+        driver: bridge
